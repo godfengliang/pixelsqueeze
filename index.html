@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelSqueeze — Compress Image to Exact File Size</title>
+<meta name="description" content="Free image compressor. Set exact target file size (100KB, 200KB, 1MB). Supports PNG, JPG, WebP. No upload, works in browser.">
+<meta name="keywords" content="image compressor, compress to exact size, reduce image size, free image tool, browser image compression">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://pixelsqueeze.surge.sh/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PixelSqueeze — Compress Image to Exact File Size">
+<meta property="og:description" content="Set exact target size (100KB, 200KB, 1MB). Free, no upload, works offline.">
+<meta property="og:url" content="https://pixelsqueeze.surge.sh/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PixelSqueeze — Compress Image to Exact File Size">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"PixelSqueeze","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Free browser-based image compressor with exact target file size."}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fafafa;color:#111;min-height:100vh}
+header{padding:16px 24px;background:#fff;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:18px;font-weight:700}
+header h1 span{color:#8b5cf6}
+.tagline{font-size:12px;color:#888}
+main{max-width:900px;margin:32px auto;padding:0 20px}
+.drop-zone{border:2px dashed #d4d4d4;border-radius:12px;padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
+.drop-zone:hover,.drop-zone.dragover{border-color:#8b5cf6;background:#f5f3ff}
+.drop-zone .icon{font-size:48px;margin-bottom:12px}
+.drop-zone h2{font-size:18px;margin-bottom:4px;color:#333}
+.drop-zone p{font-size:13px;color:#999}
+.controls{display:none;margin-top:24px;background:#fff;border-radius:12px;padding:20px;border:1px solid #e5e5e5}
+.controls.active{display:block}
+.preview-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.preview-box{flex:1;min-width:250px;text-align:center}
+.preview-box img{max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e5e5}
+.preview-box .label{font-size:12px;color:#888;margin-top:8px;font-weight:600;text-transform:uppercase}
+.preview-box .size{font-size:20px;font-weight:700;margin-top:4px}
+.size.ok{color:#22c55e}.size.warn{color:#f59e0b}.size.bad{color:#ef4444}
+.settings{margin-top:20px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.target-group{display:flex;align-items:center;gap:8px}
+.target-group label{font-size:13px;font-weight:600;white-space:nowrap}
+.target-group input{width:100px;padding:6px 10px;border:1px solid #d4d4d4;border-radius:6px;font-size:14px;font-weight:600}
+.target-group select{padding:6px 8px;border:1px solid #d4d4d4;border-radius:6px;font-size:13px;background:#fff}
+.btn{padding:8px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:#8b5cf6;color:#fff}
+.btn-primary:hover{background:#7c3aed}
+.btn-secondary{background:#f5f5f5;color:#333;border:1px solid #d4d4d4}
+.btn-secondary:hover{background:#eee}
+.result-actions{margin-top:16px;display:flex;gap:8px}
+.savings{display:inline-block;background:#dcfce7;color:#166534;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
+.batch-area{margin-top:24px;background:#fff;border-radius:12px;padding:20px;border:1px solid #e5e5e5}
+.batch-area h3{font-size:14px;margin-bottom:12px}
+.batch-list{list-style:none}
+.batch-list li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.batch-list li .fname{flex:1;font-weight:500}
+.batch-list li .orig{color:#888}
+.batch-list li .comp{color:#22c55e;font-weight:600}
+.batch-list li .status{font-size:12px;padding:2px 8px;border-radius:10px;background:#dcfce7;color:#166534}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Pixel<span>Squeeze</span></h1><div class="tagline">Compress images to an exact file size. Free, offline, no upload.</div></div>
+</header>
+<main>
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">🖼</div>
+    <h2>Drop images or click to browse</h2>
+    <p>Supports JPG, PNG, WebP. Batch mode supported.</p>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="preview-row">
+      <div class="preview-box">
+        <div class="label">Original</div>
+        <img id="origPreview" src="" alt="Original">
+        <div class="size" id="origSize">-</div>
+      </div>
+      <div class="preview-box">
+        <div class="label">Compressed</div>
+        <img id="compPreview" src="" alt="Compressed">
+        <div class="size" id="compSize">-</div>
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="target-group">
+        <label>Target size:</label>
+        <input type="number" id="targetSize" value="100" min="1" max="50000">
+        <select id="targetUnit">
+          <option value="1024">KB</option>
+          <option value="1">Bytes</option>
+          <option value="1048576">MB</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnCompress">Compress</button>
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="btnDownload" disabled>Download</button>
+        <span class="savings" id="savings" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="batch-area" id="batchArea" style="display:none">
+      <h3>Batch Results</h3>
+      <ul class="batch-list" id="batchList"></ul>
+      <button class="btn btn-primary" id="btnDownloadAll" style="margin-top:12px">Download All</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const dropZone = $('dropZone');
+const fileInput = $('fileInput');
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+let files = [];
+let compressedResults = [];
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+function handleFiles(fileList) {
+  files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  dropZone.style.display = 'none';
+  $('controls').classList.add('active');
+
+  if (files.length === 1) {
+    loadPreview(files[0]);
+  } else {
+    $('batchArea').style.display = '';
+    compressBatch();
+  }
+}
+
+function loadPreview(file) {
+  const url = URL.createObjectURL(file);
+  $('origPreview').src = url;
+  $('origSize').textContent = formatSize(file.size);
+  $('origSize').className = 'size';
+}
+
+function getTargetBytes() {
+  return parseInt($('targetSize').value) * parseInt($('targetUnit').value);
+}
+
+// Binary search compression to hit target size
+async function compressToSize(file, targetBytes) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      // Try different quality levels using binary search
+      const maxW = img.width, maxH = img.height;
+
+      async function tryQuality(quality, w, h) {
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        return new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+      }
+
+      async function search() {
+        let lo = 0.01, hi = 1.0;
+        let bestBlob = null;
+        let scale = 1;
+
+        // First try at full resolution with quality adjustment
+        for (let i = 0; i < 15; i++) {
+          const mid = (lo + hi) / 2;
+          const blob = await tryQuality(mid, Math.round(maxW * scale), Math.round(maxH * scale));
+          if (!blob) { hi = mid; continue; }
+
+          if (blob.size <= targetBytes) {
+            bestBlob = blob;
+            lo = mid;
+          } else {
+            hi = mid;
+          }
+        }
+
+        // If still too big at minimum quality, reduce dimensions
+        if (!bestBlob || bestBlob.size > targetBytes) {
+          scale = 0.9;
+          while (scale > 0.05) {
+            const blob = await tryQuality(0.5, Math.round(maxW * scale), Math.round(maxH * scale));
+            if (blob && blob.size <= targetBytes) {
+              bestBlob = blob;
+              // Try to increase quality at this scale
+              lo = 0.01; hi = 1.0;
+              for (let i = 0; i < 10; i++) {
+                const mid = (lo + hi) / 2;
+                const b = await tryQuality(mid, Math.round(maxW * scale), Math.round(maxH * scale));
+                if (b && b.size <= targetBytes) { bestBlob = b; lo = mid; }
+                else hi = mid;
+              }
+              break;
+            }
+            scale -= 0.05;
+          }
+        }
+
+        resolve(bestBlob);
+      }
+
+      search();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+$('btnCompress').addEventListener('click', async () => {
+  if (!files.length) return;
+  const targetBytes = getTargetBytes();
+  const file = files[0];
+  $('btnCompress').textContent = 'Compressing...';
+  $('btnCompress').disabled = true;
+
+  const blob = await compressToSize(file, targetBytes);
+  if (blob) {
+    const url = URL.createObjectURL(blob);
+    $('compPreview').src = url;
+    const compSizeEl = $('compSize');
+    compSizeEl.textContent = formatSize(blob.size);
+    compSizeEl.className = 'size ' + (blob.size <= targetBytes ? 'ok' : 'warn');
+    $('btnDownload').disabled = false;
+    $('btnDownload').onclick = () => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.[^.]+$/, '_compressed.jpg');
+      a.click();
+    };
+
+    const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
+    $('savings').textContent = `${savings}% smaller (${formatSize(file.size)} → ${formatSize(blob.size)})`;
+    $('savings').style.display = '';
+  }
+
+  $('btnCompress').textContent = 'Compress';
+  $('btnCompress').disabled = false;
+});
+
+async function compressBatch() {
+  const targetBytes = getTargetBytes();
+  const list = $('batchList');
+  list.innerHTML = '';
+  compressedResults = [];
+
+  for (const file of files) {
+    const blob = await compressToSize(file, targetBytes);
+    const li = document.createElement('li');
+    const name = file.name.length > 30 ? file.name.substring(0, 27) + '...' : file.name;
+    li.innerHTML = `
+      <span class="fname">${name}</span>
+      <span class="orig">${formatSize(file.size)}</span>
+      <span>→</span>
+      <span class="comp">${blob ? formatSize(blob.size) : 'FAILED'}</span>
+      <span class="status">${blob && blob.size <= targetBytes ? 'OK' : 'OVER'}</span>
+    `;
+    list.appendChild(li);
+    if (blob) compressedResults.push({ name: file.name, blob });
+  }
+}
+
+$('btnDownloadAll').addEventListener('click', () => {
+  for (const r of compressedResults) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.blob);
+    a.download = r.name.replace(/\.[^.]+$/, '_compressed.jpg');
+    a.click();
+  }
+});
+})();
+</script>
+</body>
+</html>
